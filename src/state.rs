@@ -1,4 +1,31 @@
+use crate::buffer::Vertex;
+use wgpu::util::DeviceExt;
 use winit::{event::WindowEvent, window::Window};
+
+const VERTICES: &[Vertex] = &[
+    Vertex {
+        position: [-0.0868241, 0.49240386, 0.0],
+        color: [0.5, 0.0, 0.5],
+    },
+    Vertex {
+        position: [-0.49513406, 0.06958647, 0.0],
+        color: [0.5, 0.0, 0.5],
+    },
+    Vertex {
+        position: [-0.21918549, -0.44939706, 0.0],
+        color: [0.5, 0.0, 0.5],
+    },
+    Vertex {
+        position: [0.35966998, -0.3473291, 0.0],
+        color: [0.5, 0.0, 0.5],
+    },
+    Vertex {
+        position: [0.44147372, 0.2347359, 0.0],
+        color: [0.5, 0.0, 0.5],
+    },
+];
+
+const INDICES: &[u16] = &[0, 1, 4, 1, 2, 4, 2, 3, 4];
 
 pub struct State {
     surface: wgpu::Surface,
@@ -8,8 +35,10 @@ pub struct State {
     swap_chain: wgpu::SwapChain,
     size: winit::dpi::PhysicalSize<u32>,
     clear_color: wgpu::Color,
-    render_pipeline: usize,
-    render_pipelines: Vec<wgpu::RenderPipeline>,
+    render_pipeline: wgpu::RenderPipeline,
+    vertex_buffer: wgpu::Buffer,
+    index_buffer: wgpu::Buffer,
+    num_indices: u32,
 }
 
 impl State {
@@ -59,10 +88,6 @@ impl State {
 
         let vs_module = device.create_shader_module(wgpu::include_spirv!("shader.vert.spv"));
         let fs_module = device.create_shader_module(wgpu::include_spirv!("shader.frag.spv"));
-        let vs_module_challenge =
-            device.create_shader_module(wgpu::include_spirv!("shader-challenge.vert.spv"));
-        let fs_module_challenge =
-            device.create_shader_module(wgpu::include_spirv!("shader-challenge.frag.spv"));
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -71,79 +96,53 @@ impl State {
                 push_constant_ranges: &[],
             });
 
-        let render_pipeline = 0;
-        let render_pipelines = vec![
-            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("Render Pipeline"),
-                layout: Some(&render_pipeline_layout),
-                vertex_stage: wgpu::ProgrammableStageDescriptor {
-                    module: &vs_module,
-                    entry_point: "main",
-                },
-                fragment_stage: Some(wgpu::ProgrammableStageDescriptor {
-                    module: &fs_module,
-                    entry_point: "main",
-                }),
-                rasterization_state: Some(wgpu::RasterizationStateDescriptor {
-                    front_face: wgpu::FrontFace::Ccw,
-                    cull_mode: wgpu::CullMode::Back,
-                    depth_bias: 0,
-                    depth_bias_slope_scale: 0.0,
-                    depth_bias_clamp: 0.0,
-                    clamp_depth: false,
-                }),
-                color_states: &[wgpu::ColorStateDescriptor {
-                    format: sc_desc.format,
-                    color_blend: wgpu::BlendDescriptor::REPLACE,
-                    alpha_blend: wgpu::BlendDescriptor::REPLACE,
-                    write_mask: wgpu::ColorWrite::ALL,
-                }],
-                primitive_topology: wgpu::PrimitiveTopology::TriangleList,
-                depth_stencil_state: None,
-                vertex_state: wgpu::VertexStateDescriptor {
-                    index_format: wgpu::IndexFormat::Uint16,
-                    vertex_buffers: &[],
-                },
-                sample_count: 1,
-                sample_mask: !0,
-                alpha_to_coverage_enabled: false,
+        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Render Pipeline"),
+            layout: Some(&render_pipeline_layout),
+            vertex_stage: wgpu::ProgrammableStageDescriptor {
+                module: &vs_module,
+                entry_point: "main",
+            },
+            fragment_stage: Some(wgpu::ProgrammableStageDescriptor {
+                module: &fs_module,
+                entry_point: "main",
             }),
-            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("Render Pipeline"),
-                layout: Some(&render_pipeline_layout),
-                vertex_stage: wgpu::ProgrammableStageDescriptor {
-                    module: &vs_module_challenge,
-                    entry_point: "main",
-                },
-                fragment_stage: Some(wgpu::ProgrammableStageDescriptor {
-                    module: &fs_module_challenge,
-                    entry_point: "main",
-                }),
-                rasterization_state: Some(wgpu::RasterizationStateDescriptor {
-                    front_face: wgpu::FrontFace::Ccw,
-                    cull_mode: wgpu::CullMode::Back,
-                    depth_bias: 0,
-                    depth_bias_slope_scale: 0.0,
-                    depth_bias_clamp: 0.0,
-                    clamp_depth: false,
-                }),
-                color_states: &[wgpu::ColorStateDescriptor {
-                    format: sc_desc.format,
-                    color_blend: wgpu::BlendDescriptor::REPLACE,
-                    alpha_blend: wgpu::BlendDescriptor::REPLACE,
-                    write_mask: wgpu::ColorWrite::ALL,
-                }],
-                primitive_topology: wgpu::PrimitiveTopology::TriangleList,
-                depth_stencil_state: None,
-                vertex_state: wgpu::VertexStateDescriptor {
-                    index_format: wgpu::IndexFormat::Uint16,
-                    vertex_buffers: &[],
-                },
-                sample_count: 1,
-                sample_mask: !0,
-                alpha_to_coverage_enabled: false,
+            rasterization_state: Some(wgpu::RasterizationStateDescriptor {
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: wgpu::CullMode::Back,
+                depth_bias: 0,
+                depth_bias_slope_scale: 0.0,
+                depth_bias_clamp: 0.0,
+                clamp_depth: false,
             }),
-        ];
+            color_states: &[wgpu::ColorStateDescriptor {
+                format: sc_desc.format,
+                color_blend: wgpu::BlendDescriptor::REPLACE,
+                alpha_blend: wgpu::BlendDescriptor::REPLACE,
+                write_mask: wgpu::ColorWrite::ALL,
+            }],
+            primitive_topology: wgpu::PrimitiveTopology::TriangleList,
+            depth_stencil_state: None,
+            vertex_state: wgpu::VertexStateDescriptor {
+                index_format: wgpu::IndexFormat::Uint16,
+                vertex_buffers: &[Vertex::desc()],
+            },
+            sample_count: 1,
+            sample_mask: !0,
+            alpha_to_coverage_enabled: false,
+        });
+
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(VERTICES),
+            usage: wgpu::BufferUsage::VERTEX,
+        });
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Index Buffer"),
+            contents: bytemuck::cast_slice(INDICES),
+            usage: wgpu::BufferUsage::INDEX,
+        });
+        let num_indices = INDICES.len() as u32;
 
         Self {
             surface,
@@ -154,7 +153,9 @@ impl State {
             size,
             clear_color,
             render_pipeline,
-            render_pipelines,
+            vertex_buffer,
+            index_buffer,
+            num_indices,
         }
     }
 
@@ -167,18 +168,6 @@ impl State {
 
     pub fn input(&mut self, event: &WindowEvent) -> bool {
         match event {
-            WindowEvent::KeyboardInput {
-                input:
-                    winit::event::KeyboardInput {
-                        state: winit::event::ElementState::Pressed,
-                        virtual_keycode: Some(winit::event::VirtualKeyCode::Space),
-                        ..
-                    },
-                ..
-            } => {
-                self.render_pipeline = if self.render_pipeline == 1 { 0 } else { 1 };
-                true
-            }
             _ => false,
         }
     }
@@ -211,8 +200,10 @@ impl State {
                 depth_stencil_attachment: None,
             });
 
-            render_pass.set_pipeline(&self.render_pipelines[self.render_pipeline]);
-            render_pass.draw(0..3, 0..1);
+            render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(self.index_buffer.slice(..));
+            render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
         }
 
         // submit will accept anything that implements IntoIter
