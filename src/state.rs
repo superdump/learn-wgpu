@@ -38,6 +38,7 @@ pub struct State {
     swap_chain: wgpu::SwapChain,
     size: winit::dpi::PhysicalSize<u32>,
     diffuse_texture: crate::texture::Texture,
+    depth_texture: crate::texture::Texture,
     diffuse_bind_group: wgpu::BindGroup,
     camera: crate::camera::Camera,
     camera_controller: crate::camera_controller::CameraController,
@@ -96,6 +97,9 @@ impl State {
         let diffuse_texture =
             crate::texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "happy-tree.png")
                 .unwrap();
+
+        let depth_texture =
+            crate::texture::Texture::create_depth_texture(&device, &sc_desc, "depth_texture");
 
         let texture_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -274,7 +278,12 @@ impl State {
                 write_mask: wgpu::ColorWrite::ALL,
             }],
             primitive_topology: wgpu::PrimitiveTopology::TriangleList,
-            depth_stencil_state: None,
+            depth_stencil_state: Some(wgpu::DepthStencilStateDescriptor {
+                format: crate::texture::Texture::DEPTH_FORMAT,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Greater,
+                stencil: wgpu::StencilStateDescriptor::default(),
+            }),
             vertex_state: wgpu::VertexStateDescriptor {
                 index_format: wgpu::IndexFormat::Uint16,
                 vertex_buffers: &[Vertex::desc()],
@@ -304,6 +313,7 @@ impl State {
             swap_chain,
             size,
             diffuse_texture,
+            depth_texture,
             diffuse_bind_group,
             camera,
             camera_controller,
@@ -324,6 +334,11 @@ impl State {
         self.size = new_size;
         self.sc_desc.width = new_size.width;
         self.sc_desc.height = new_size.height;
+        self.depth_texture = crate::texture::Texture::create_depth_texture(
+            &self.device,
+            &self.sc_desc,
+            "depth_texture",
+        );
         self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_desc);
     }
 
@@ -364,7 +379,14 @@ impl State {
                         store: true,
                     },
                 }],
-                depth_stencil_attachment: None,
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
+                    attachment: &self.depth_texture.view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(0.0),
+                        store: true,
+                    }),
+                    stencil_ops: None,
+                }),
             });
 
             render_pass.set_pipeline(&self.render_pipeline);

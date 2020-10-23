@@ -11,7 +11,8 @@ pub struct Camera {
 impl Camera {
     pub fn build_view_projection_matrix(&self) -> glam::Mat4 {
         let view = glam::Mat4::look_at_rh(self.eye, self.target, self.up);
-        let projection = glam::Mat4::perspective_rh(self.fovy, self.aspect, self.znear, self.zfar);
+        let projection =
+            glam::Mat4::perspective_infinite_reverse_rh(self.fovy, self.aspect, self.znear);
         projection * view
     }
 }
