@@ -7,6 +7,7 @@ pub struct State {
     sc_desc: wgpu::SwapChainDescriptor,
     swap_chain: wgpu::SwapChain,
     size: winit::dpi::PhysicalSize<u32>,
+    clear_color: wgpu::Color,
 }
 
 impl State {
@@ -47,6 +48,13 @@ impl State {
         };
         let swap_chain = device.create_swap_chain(&surface, &sc_desc);
 
+        let clear_color = wgpu::Color {
+            r: 0.1,
+            g: 0.2,
+            b: 0.3,
+            a: 1.0,
+        };
+
         Self {
             surface,
             device,
@@ -54,6 +62,7 @@ impl State {
             sc_desc,
             swap_chain,
             size,
+            clear_color,
         }
     }
 
@@ -65,7 +74,33 @@ impl State {
     }
 
     pub fn input(&mut self, event: &WindowEvent) -> bool {
-        false
+        match event {
+            WindowEvent::CursorMoved { position, .. } => {
+                // hue = (tau / tau/6) * (x / w)
+                let h = 6.0 * position.x / self.size.width as f64;
+                let s = position.y / self.size.height as f64;
+                let c = s * 1.0;
+                let x = c * (1.0 - ((h % 2.0) - 1.0).abs());
+                let (r, g, b) = if 0.0 <= h && h <= 1.0 {
+                    (c, x, 0.0)
+                } else if 1.0 < h && h <= 2.0 {
+                    (x, c, 0.0)
+                } else if 2.0 < h && h <= 3.0 {
+                    (0.0, c, x)
+                } else if 3.0 < h && h <= 4.0 {
+                    (0.0, x, c)
+                } else if 4.0 < h && h <= 5.0 {
+                    (x, 0.0, c)
+                } else if 5.0 < h && h <= 6.0 {
+                    (c, 0.0, x)
+                } else {
+                    (0.0, 0.0, 0.0)
+                };
+                self.clear_color = wgpu::Color { r, g, b, a: 1.0 };
+                true
+            }
+            _ => false,
+        }
     }
 
     pub fn update(&mut self) {}
@@ -89,12 +124,7 @@ impl State {
                     attachment: &frame.view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
-                            a: 1.0,
-                        }),
+                        load: wgpu::LoadOp::Clear(self.clear_color),
                         store: true,
                     },
                 }],
