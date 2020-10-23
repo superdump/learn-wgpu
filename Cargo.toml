@@ -6,6 +6,7 @@ edition = "2018"
 license = "MIT"
 
 [dependencies]
+anyhow = "1.0"
 bytemuck = "1.4"
 futures = "0.3"
 glam = "0.9"
