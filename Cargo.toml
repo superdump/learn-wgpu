@@ -1,0 +1,16 @@
+[package]
+name = "learn-wgpu"
+version = "0.1.0"
+authors = ["Robert Swain <robert.swain@gmail.com>"]
+edition = "2018"
+license = "MIT"
+
+[dependencies]
+futures = "0.3"
+glam = "0.9"
+image = "0.23"
+shaderc = "0.6"
+tracing = "0.1"
+tracing-subscriber = "0.2"
+wgpu = "0.6"
+winit = "0.23"
