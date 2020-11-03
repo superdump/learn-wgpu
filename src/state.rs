@@ -1,4 +1,5 @@
 use crate::{buffer::Vertex, camera_controller::CameraController, instance::Instance};
+use noise::{MultiFractal, NoiseFn, RidgedMulti, Seedable};
 use wgpu::util::DeviceExt;
 use winit::{event::WindowEvent, window::Window};
 
@@ -165,13 +166,20 @@ impl State {
             0.0,
             NUM_INSTANCES_PER_ROW as f32 * 0.5,
         );
-        let instances = (0..NUM_INSTANCES_PER_ROW)
-            .flat_map(|z| {
-                (0..NUM_INSTANCES_PER_ROW).map(move |x| Instance {
-                    position: glam::Vec3::new(x as f32, 0.0, z as f32) - instance_displacement,
-                })
-            })
-            .collect::<Vec<_>>();
+        let noise = RidgedMulti::new()
+            .set_seed(1234)
+            .set_frequency(0.008)
+            .set_octaves(5);
+        let mut instances = Vec::with_capacity(NUM_INSTANCES as usize);
+        for z in 0..NUM_INSTANCES_PER_ROW {
+            for x in 0..NUM_INSTANCES_PER_ROW {
+                let y = noise.get([x as f64, z as f64]);
+                instances.push(Instance {
+                    position: glam::Vec3::new(x as f32, 20.0 * y as f32, z as f32)
+                        - instance_displacement,
+                });
+            }
+        }
         let instance_data = instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
         let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Instance Buffer"),
