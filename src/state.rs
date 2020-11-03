@@ -171,12 +171,28 @@ impl State {
             .set_frequency(0.008)
             .set_octaves(5);
         let mut instances = Vec::with_capacity(NUM_INSTANCES as usize);
+        let colors = [
+            glam::Vec3::new(0.275, 0.51, 0.706),  // Blue
+            glam::Vec3::new(1.0, 0.98, 0.804),    // Yellow
+            glam::Vec3::new(0.604, 0.804, 0.196), // Green
+            glam::Vec3::new(0.545, 0.271, 0.075), // Brown
+            glam::Vec3::new(0.502, 0.502, 0.502), // Grey
+            glam::Vec3::new(1.0, 0.98, 0.98),     // White
+        ];
         for z in 0..NUM_INSTANCES_PER_ROW {
             for x in 0..NUM_INSTANCES_PER_ROW {
                 let y = noise.get([x as f64, z as f64]);
                 instances.push(Instance {
                     position: glam::Vec3::new(x as f32, 20.0 * y as f32, z as f32)
                         - instance_displacement,
+                    color: colors[match y {
+                        y if y < -0.5 => 0, // Blue
+                        y if y < -0.4 => 1, // Yellow
+                        y if y < -0.2 => 2, // Green
+                        y if y < -0.1 => 3, // Brown
+                        y if y < 0.6 => 4,  // Grey
+                        _ => 5,             // White
+                    }],
                 });
             }
         }

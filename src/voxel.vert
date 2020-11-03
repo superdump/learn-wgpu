@@ -8,6 +8,7 @@ layout (set = 0, binding = 0) uniform UBO {
 
 struct InstanceData {
     vec4 position;
+    vec4 color;
 };
 
 layout(set = 0, binding = 1) buffer Instances {
@@ -17,6 +18,7 @@ layout(set = 0, binding = 1) buffer Instances {
 layout (location = 0) out vec3 uvw;
 layout (location = 1) out vec3 local_camera_pos;
 layout (location = 2) out vec3 local_pos;
+layout (location = 3) out vec3 color;
 
 void main() {
     uint vx = gl_VertexIndex;
@@ -36,6 +38,8 @@ void main() {
     vec3 pos = uvw * 2.0 - 1.0;
 
     local_pos = pos.xyz * ubo.center_to_edge.xyz;
+
+    color = instances[instance].color.rgb;
 
     gl_Position = ubo.world_to_screen * vec4(instance_pos + local_pos, 1.0);
 }
