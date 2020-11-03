@@ -2,7 +2,7 @@ use crate::{buffer::Vertex, camera_controller::CameraController, instance::Insta
 use wgpu::util::DeviceExt;
 use winit::{event::WindowEvent, window::Window};
 
-const NUM_INSTANCES_PER_ROW: u32 = 30;
+const NUM_INSTANCES_PER_ROW: u32 = 1400;
 pub const NUM_INSTANCES: u32 = NUM_INSTANCES_PER_ROW * NUM_INSTANCES_PER_ROW;
 
 pub struct State {
@@ -112,7 +112,7 @@ impl State {
         // });
 
         let camera = crate::camera::Camera {
-            eye: (20.0, 10.0, 20.0).into(),
+            eye: (300.0, 100.0, 300.0).into(),
             target: glam::Vec3::zero(),
             up: glam::Vec3::unit_y(),
             aspect: sc_desc.width as f32 / sc_desc.height as f32,
@@ -121,7 +121,7 @@ impl State {
             zfar: 100.0,
         };
 
-        let camera_controller = CameraController::new(0.2);
+        let camera_controller = CameraController::new(1.0);
 
         let mut uniforms = crate::uniforms::Uniforms::new();
         uniforms.update(&camera);
@@ -348,11 +348,7 @@ impl State {
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
             render_pass.set_index_buffer(self.index_buffer.slice(..));
-            render_pass.draw_indexed(
-                0..(self.num_indices / self.instances.len() as u32),
-                0,
-                0..self.instances.len() as _,
-            );
+            render_pass.draw_indexed(0..self.num_indices, 0, 0..1 as _);
         }
 
         // submit will accept anything that implements IntoIter
